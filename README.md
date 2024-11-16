@@ -1,5 +1,5 @@
 # webpy
-Initial lexical analyzer for webpy (Web centered python)
-To be added:
-Syntax analyzer
-New principle (built-in http methods)
+<p>Initial lexical analyzer for webpy (Web centered python)</p>
+<h2>To be added:</h2>
+<p>Syntax analyzer</p>
+<p>New principle (built-in http methods)</p>
