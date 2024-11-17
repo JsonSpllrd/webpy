@@ -2,11 +2,13 @@ from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 import re
 
-# Define token categories inline
-KEYWORDS = {"False", "await", "else", "import", "pass", "None", "break", "except", "in", "raise",
-            "True", "class", "finally", "is", "return", "and", "continue", "for", "lambda", "try",
-            "as", "def", "from", "nonlocal", "while", "assert", "del", "global", "not", "with",
-            "async", "elif", "if", "or", "yield"}
+# Define token categories
+KEYWORDS = {
+    "False", "await", "else", "import", "pass", "None", "break", "except", "in", "raise",
+    "True", "class", "finally", "is", "return", "and", "continue", "for", "lambda", "try",
+    "as", "def", "from", "nonlocal", "while", "assert", "del", "global", "not", "with",
+    "async", "elif", "if", "or", "yield", "do", "int", "float", "complex", "str", "bool", "list", "tuple", "dict", "set", "frozenset",
+    "bytes", "bytearray", "memoryview", "range", "NoneType"}
 
 OPERATORS = {'+': 'plus_op', '-': 'minus_op', '*': 'multiply_op', '/': 'divide_op',
              '%': 'modulus_op', '>': 'greater_than', '<': 'less_than', '=': 'equal_sign',
@@ -32,28 +34,28 @@ def get_token_type_and_name(char_or_word):
 
 def lexical_analyzer(input_text):
     tokens = []
-    # Updated pattern to include floats explicitly
     pattern = r'"[^"]*"|\'[^\']*\'|["\']|\d+\.\d+|\w+|[+\-*/%<>=&|^~{},;()\[\]{}:]'
     for match in re.findall(pattern, input_text):
         if match.startswith('"') and match.endswith('"') and len(match) > 1:
             tokens.append((match, "string_literal"))
         elif match.startswith("'") and match.endswith("'") and len(match) == 3:
             tokens.append((match, "char_literal"))
+        elif match.startswith("'") and match.endswith("'") and len(match) > 3:
+            tokens.append(("'", "quotation_mark"))
+            tokens.append((match[1:-1].strip(), "identifier"))
+            tokens.append(("'", "quotation_mark"))
         elif match in {'"', "'"}:
             tokens.append((match, "quotation_mark"))
-        elif re.match(r'^[0-9]*\.[0-9]+$', match):  # Check for float literals
+        elif re.match(r'^[0-9]*\.[0-9]+$', match):
             tokens.append((match, "float_literal"))
         else:
             tokens.append((match, get_token_type_and_name(match)))
     return tokens
 
-
 def generate_pdf(tokens, input_text, output_filename="lexical_analysis.pdf"):
     c = canvas.Canvas(output_filename, pagesize=letter)
     width, height = letter
     y = height - 30
-
-    # Add report title
     c.drawString(30, y, "Lexical Analysis Report")
     y -= 20
     c.drawString(30, y, "=====================================")
@@ -62,8 +64,6 @@ def generate_pdf(tokens, input_text, output_filename="lexical_analysis.pdf"):
     y -= 20
     c.drawString(30, y, "=====================================")
     y -= 30
-
-    # Add lexemes and tokens
     c.drawString(30, y, "Lexemes")
     c.drawString(200, y, "Tokens")
     y -= 20
@@ -74,10 +74,9 @@ def generate_pdf(tokens, input_text, output_filename="lexical_analysis.pdf"):
         c.drawString(30, y, lexeme)
         c.drawString(200, y, token)
         y -= 20
-        if y < 40:  # Create a new page if running out of space
+        if y < 40:
             c.showPage()
             y = height - 40
-
     c.save()
     print(f"PDF generated: {output_filename}")
 
