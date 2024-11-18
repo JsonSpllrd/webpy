@@ -7,19 +7,31 @@ KEYWORDS = {
     "False", "await", "else", "import", "pass", "None", "break", "except", "in", "raise",
     "True", "class", "finally", "is", "return", "and", "continue", "for", "lambda", "try",
     "as", "def", "from", "nonlocal", "while", "assert", "del", "global", "not", "with",
-    "async", "elif", "if", "or", "yield", "do", "int", "float", "complex", "str", "bool", "list", "tuple", "dict", "set", "frozenset",
-    "bytes", "bytearray", "memoryview", "range", "NoneType"}
+    "async", "elif", "if", "or", "yield", "do"
+}
 
-OPERATORS = {'+': 'plus_op', '-': 'minus_op', '*': 'multiply_op', '/': 'divide_op',
-             '%': 'modulus_op', '>': 'greater_than', '<': 'less_than', '=': 'equal_sign',
-             '&': 'and_bitwise_op', '|': 'or_bitwise_op', '^': 'xor_bitwise_op', '~': 'not_bitwise_op'}
+DATA_TYPES = {
+    "int", "float", "complex", "str", "bool", "list", "tuple", "dict", "set", "frozenset",
+    "bytes", "bytearray", "memoryview", "range", "None"
+}
 
-DELIMITERS = {',': 'comma', ';': 'semicolon', '(': 'open_parenthesis', ')': 'close_parenthesis',
-              '[': 'open_bracket', ']': 'close_bracket', '{': 'open_brace', '}': 'close_brace', ':': 'colon'}
+OPERATORS = {
+    '+': 'plus_op', '-': 'minus_op', '*': 'multiply_op', '/': 'divide_op',
+    '%': 'modulus_op', '=': 'equal_op', '>': 'greater_than', '<': 'less_than',
+    '&': 'and_op', '|': 'or_op', '^': 'xor_op', '~': 'not_op'
+}
+
+DELIMITERS = {
+    ',': 'comma', ';': 'semicolon', '(': 'open_parenthesis', ')': 'close_parenthesis',
+    '[': 'open_bracket', ']': 'close_bracket', '{': 'open_brace', '}': 'close_brace',
+    ':': 'colon', '.': 'dot', '@': 'at_symbol', '#': 'hash'
+}
 
 def get_token_type_and_name(char_or_word):
     if char_or_word in KEYWORDS:
         return "keyword"
+    if char_or_word in DATA_TYPES:
+        return "data_type"
     if char_or_word in OPERATORS:
         return OPERATORS[char_or_word]
     if char_or_word in DELIMITERS:
@@ -34,7 +46,7 @@ def get_token_type_and_name(char_or_word):
 
 def lexical_analyzer(input_text):
     tokens = []
-    pattern = r'"[^"]*"|\'[^\']*\'|["\']|\d+\.\d+|\w+|[+\-*/%<>=&|^~{},;()\[\]{}:]'
+    pattern = r'"[^"]*"|\'[^\']*\'|["\']|\d+\.\d+|\w+|[+\-*/%<>=&|^~{},;()\[\]{}:#@.]'
     for match in re.findall(pattern, input_text):
         if match.startswith('"') and match.endswith('"') and len(match) > 1:
             tokens.append((match, "string_literal"))
