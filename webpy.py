@@ -1,6 +1,6 @@
+import re
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
-import re
 
 # Define token categories
 KEYWORDS = {
@@ -15,11 +15,16 @@ DATA_TYPES = {
     "bytes", "bytearray", "memoryview", "range", "None"
 }
 
-OPERATORS = {
-    '+': 'plus_op', '-': 'minus_op', '*': 'multiply_op', '/': 'divide_op',
-    '%': 'modulus_op', '=': 'equal_op', '>': 'greater_than', '<': 'less_than',
-    '&': 'and_op', '|': 'or_op', '^': 'xor_op', '~': 'not_op'
-}
+OPERATORS = {'+': 'plus_op', '-': 'minus_op', '*': 'multiply_op', '**': 'expo_op', '/': 'divide_op',
+             '//': 'floor_divide_op', '%': 'modulus_op', '==': 'comp_equal_op', '!=': 'not_equal_op',
+             '>': 'greater_than', '<': 'less_than', '>=': 'greater_equal', '<=': 'less_equal',
+             '=': 'equal_op', '+=': 'plus_equal_op', '-=': 'minus_equal_op', '*=': 'multiply_equal_op',
+             '/=': 'divide_equal_op', '//=': 'floor_divide_equal_op', '%=': 'modulus_equal_op',
+             '**=': 'expo_equal_op', '++': 'increment_op', '--': 'decrement_op',
+             '&=': 'and_equal', '^=': 'xor_equal', '|=': 'or_equal', '>>=': 'shift_right_equal',
+             '<<=': 'shift_left_equal', ':=': 'colon_equal', '&': 'bitwise_and', '|': 'bitwise_or',
+             '^': 'bitwise_xor', '~': 'bitwise_not', '<<': 'shift_left', '>>': 'shift_right'
+             }
 
 DELIMITERS = {
     ',': 'comma', ';': 'semicolon', '(': 'open_parenthesis', ')': 'close_parenthesis',
@@ -46,22 +51,33 @@ def get_token_type_and_name(char_or_word):
 
 def lexical_analyzer(input_text):
     tokens = []
-    pattern = r'"[^"]*"|\'[^\']*\'|["\']|\d+\.\d+|\w+|[+\-*/%<>=&|^~{},;()\[\]{}:#@.]'
+
+    pattern = r'\+\+|--|\+=|-=|\*=|/=|%|==|!=|>=|<=|\*\*|<<|>>|&=|\^=|\|=|:=|[\+\-\*\/\%\&\^\|\=\~<>!]=?|\d+\.\d+|\d+[a-zA-Z_]\w*|\d+|\"[^\"]*\"|\'[^\']*\'|[a-zA-Z_]\w*|[{},;()\[\]{}:#@.]|[^a-zA-Z0-9\s]'
+
     for match in re.findall(pattern, input_text):
-        if match.startswith('"') and match.endswith('"') and len(match) > 1:
+        if match.startswith('"') and match.endswith('"'):
             tokens.append((match, "string_literal"))
-        elif match.startswith("'") and match.endswith("'") and len(match) == 3:
-            tokens.append((match, "char_literal"))
-        elif match.startswith("'") and match.endswith("'") and len(match) > 3:
-            tokens.append(("'", "quotation_mark"))
-            tokens.append((match[1:-1].strip(), "identifier"))
-            tokens.append(("'", "quotation_mark"))
-        elif match in {'"', "'"}:
-            tokens.append((match, "quotation_mark"))
+        elif match.startswith("'") and match.endswith("'"):
+            if len(match) == 3:
+                tokens.append((match, "char_literal"))
+            else:
+                tokens.append((match, "unidentified"))
         elif re.match(r'^[0-9]*\.[0-9]+$', match):
             tokens.append((match, "float_literal"))
+        elif match.isdigit():
+            tokens.append((match, "int_literal"))
+        elif match in KEYWORDS:
+            tokens.append((match, "keyword"))
+        elif match in DATA_TYPES:
+            tokens.append((match, "data_type"))
+        elif match in OPERATORS:
+            tokens.append((match, OPERATORS[match]))
+        elif match in DELIMITERS:
+            tokens.append((match, DELIMITERS[match]))
+        elif re.match(r'^[^\d\W]\w*\Z', match):
+            tokens.append((match, "identifier"))
         else:
-            tokens.append((match, get_token_type_and_name(match)))
+            tokens.append((match, "unidentified"))
     return tokens
 
 def generate_pdf(tokens, input_text, output_filename="lexical_analysis.pdf"):
