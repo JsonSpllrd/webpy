@@ -1,4 +1,3 @@
-import re
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 
@@ -32,52 +31,86 @@ DELIMITERS = {
     ':': 'colon', '.': 'dot', '@': 'at_symbol', '#': 'hash'
 }
 
-def get_token_type_and_name(char_or_word):
-    if char_or_word in KEYWORDS:
-        return "keyword"
-    if char_or_word in DATA_TYPES:
-        return "data_type"
-    if char_or_word in OPERATORS:
-        return OPERATORS[char_or_word]
-    if char_or_word in DELIMITERS:
-        return DELIMITERS[char_or_word]
-    if char_or_word.isdigit():
-        return "int_literal"
-    if re.match(r'^[0-9]*\.[0-9]+$', char_or_word):
-        return "float_literal"
-    if re.match(r'^[^\d\W]\w*\Z', char_or_word):
-        return "identifier"
-    return "unidentified"
+def is_identifier(word):
+    if word[0].isalpha() or word[0] == "_":
+        for char in word[1:]:
+            if not (char.isalnum() or char == "_"):
+                return False
+        return True
+    return False
 
-def lexical_analyzer(input_text):
+def tokenize(input_text):
     tokens = []
+    i = 0
+    n = len(input_text)
 
-    pattern = r'\+\+|--|\+=|-=|\*=|/=|%|==|!=|>=|<=|\*\*|<<|>>|&=|\^=|\|=|:=|[\+\-\*\/\%\&\^\|\=\~<>!]=?|\d+\.\d+|\d+[a-zA-Z_]\w*|\d+|\"[^\"]*\"|\'[^\']*\'|[a-zA-Z_]\w*|[{},;()\[\]{}:#@.]|[^a-zA-Z0-9\s]'
+    while i < n:
+        char = input_text[i]
 
-    for match in re.findall(pattern, input_text):
-        if match.startswith('"') and match.endswith('"'):
-            tokens.append((match, "string_literal"))
-        elif match.startswith("'") and match.endswith("'"):
-            if len(match) == 3:
-                tokens.append((match, "char_literal"))
-            else:
-                tokens.append((match, "unidentified"))
-        elif re.match(r'^[0-9]*\.[0-9]+$', match):
-            tokens.append((match, "float_literal"))
-        elif match.isdigit():
-            tokens.append((match, "int_literal"))
-        elif match in KEYWORDS:
-            tokens.append((match, "keyword"))
-        elif match in DATA_TYPES:
-            tokens.append((match, "data_type"))
-        elif match in OPERATORS:
-            tokens.append((match, OPERATORS[match]))
-        elif match in DELIMITERS:
-            tokens.append((match, DELIMITERS[match]))
-        elif re.match(r'^[^\d\W]\w*\Z', match):
-            tokens.append((match, "identifier"))
+        # Skip whitespace
+        if char.isspace():
+            i += 1
+            continue
+
+        # Match operators
+        for op in sorted(OPERATORS.keys(), key=len, reverse=True):  # Match longest operators first
+            if input_text.startswith(op, i):
+                tokens.append((op, OPERATORS[op]))
+                i += len(op)
+                break
         else:
-            tokens.append((match, "unidentified"))
+            # Match delimiters
+            if char in DELIMITERS:
+                tokens.append((char, DELIMITERS[char]))
+                i += 1
+                continue
+
+            # Match string literals
+            if char in {'"', "'"}:
+                quote_type = char
+                end_idx = i + 1
+                while end_idx < n and input_text[end_idx] != quote_type:
+                    end_idx += 1
+                if end_idx < n:
+                    tokens.append((input_text[i:end_idx + 1], "string_literal" if quote_type == '"' else "char_literal"))
+                    i = end_idx + 1
+                else:
+                    tokens.append((input_text[i:], "unidentified"))
+                    break
+                continue
+
+            # Match numeric literals
+            if char.isdigit():
+                num_start = i
+                has_dot = False
+                while i < n and (input_text[i].isdigit() or (input_text[i] == '.' and not has_dot)):
+                    if input_text[i] == '.':
+                        has_dot = True
+                    i += 1
+                num_str = input_text[num_start:i]
+                tokens.append((num_str, "float_literal" if '.' in num_str else "int_literal"))
+                continue
+
+            # Match keywords, data types, and identifiers
+            if char.isalpha() or char == "_":
+                word_start = i
+                while i < n and (input_text[i].isalnum() or input_text[i] == "_"):
+                    i += 1
+                word = input_text[word_start:i]
+                if word in KEYWORDS:
+                    tokens.append((word, "keyword"))
+                elif word in DATA_TYPES:
+                    tokens.append((word, "data_type"))
+                elif is_identifier(word):
+                    tokens.append((word, "identifier"))
+                else:
+                    tokens.append((word, "unidentified"))
+                continue
+
+            # Unidentified characters
+            tokens.append((char, "unidentified"))
+            i += 1
+
     return tokens
 
 def generate_pdf(tokens, input_text, output_filename="lexical_analysis.pdf"):
@@ -110,7 +143,7 @@ def generate_pdf(tokens, input_text, output_filename="lexical_analysis.pdf"):
 
 def main():
     input_text = input("Enter an expression: ")
-    tokens = lexical_analyzer(input_text)
+    tokens = tokenize(input_text)
     print("Lexical Analysis Results:")
     for lexeme, token in tokens:
         print(f"Lexeme: {lexeme}, Token: {token}")
