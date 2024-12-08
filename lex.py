@@ -32,12 +32,19 @@ DELIMITERS = {
 }
 
 def is_identifier(word):
+    # Check if the word starts with a valid character
     if word[0].isalpha() or word[0] == "_":
-        for char in word[1:]:
+        # Check each character in the word
+        for char in word:
+            # If the character is in delimiters or operators, return False
+            if char in DELIMITERS or char in ''.join(OPERATORS.keys()):
+                return False
+            # If the character is not alphanumeric or an underscore, return False
             if not (char.isalnum() or char == "_"):
                 return False
         return True
     return False
+
 
 def tokenize(input_text):
     tokens = []
@@ -72,11 +79,32 @@ def tokenize(input_text):
                 while end_idx < n and input_text[end_idx] != quote_type:
                     end_idx += 1
                 if end_idx < n:
-                    tokens.append((input_text[i:end_idx + 1], "string_literal" if quote_type == '"' else "char_literal"))
+                    tokens.append((input_text[i:end_idx + 1], "string_literal"))
                     i = end_idx + 1
                 else:
                     tokens.append((input_text[i:], "unidentified"))
                     break
+                continue
+
+            # Match identifiers or invalid identifiers
+            if char.isalpha() or char == "_":
+                word_start = i
+                while i < n and (input_text[i].isalnum() or input_text[i] in DELIMITERS or input_text[i] in ''.join(OPERATORS.keys()) or input_text[i] == "_"):
+                    i += 1
+                word = input_text[word_start:i]
+
+                # If the word contains invalid characters, mark it as "unidentified"
+                if any(delimiter in word for delimiter in DELIMITERS) or \
+                   any(op in word for op in OPERATORS):
+                    tokens.append((word, "unidentified"))
+                elif word in KEYWORDS:
+                    tokens.append((word, "keyword"))
+                elif word in DATA_TYPES:
+                    tokens.append((word, "data_type"))
+                elif is_identifier(word):
+                    tokens.append((word, "identifier"))
+                else:
+                    tokens.append((word, "unidentified"))
                 continue
 
             # Match numeric literals
@@ -89,22 +117,6 @@ def tokenize(input_text):
                     i += 1
                 num_str = input_text[num_start:i]
                 tokens.append((num_str, "float_literal" if '.' in num_str else "int_literal"))
-                continue
-
-            # Match keywords, data types, and identifiers
-            if char.isalpha() or char == "_":
-                word_start = i
-                while i < n and (input_text[i].isalnum() or input_text[i] == "_"):
-                    i += 1
-                word = input_text[word_start:i]
-                if word in KEYWORDS:
-                    tokens.append((word, "keyword"))
-                elif word in DATA_TYPES:
-                    tokens.append((word, "data_type"))
-                elif is_identifier(word):
-                    tokens.append((word, "identifier"))
-                else:
-                    tokens.append((word, "unidentified"))
                 continue
 
             # Unidentified characters
